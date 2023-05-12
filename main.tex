@@ -437,7 +437,7 @@ One of the striking things I noticed, after compiling the surface code into pair
 The circuit doesn't really know about the stabilizers that it came from, it only knows about the pair measurements running along the pentagonal faces.
 Detectors are formed from the edge measurements by combining them in surprising ways that narrowly avoid anti-commuting with intermediate measurements (see \fig{detector}).
 That's also what detectors look like in floquet codes.
-Particularly notable is that the compiled circuit is constantly moving the logical observable (for example, see the stim circuit shown in \app{example_circuit} and note the OBSERVABLE\_INCLUDE instruction inside the REPEAT block).
+Particularly notable is that the compiled circuit is constantly moving the logical observable (for example, see the stim circuits on zenodo~\cite{craig_gidney_2022_6626417} and note the OBSERVABLE\_INCLUDE instructions inside their REPEAT blocks).
 Having to constantly move the observable is normally thought of as \emph{the} defining aspect of a floquet code~\cite{hastings2021dynamically}, but here the same property is occurring in a compiled surface code circuit.
 
 Another fact about the circuit that surprised me was how well it performs, despite having half code distance.
