@@ -111,7 +111,7 @@ literate={*}{{\char42}}1
 In this paper, I present a way to compile the surface code into two-body parity measurements ("pair measurements"), where the pair measurements run along the edges of a Cairo pentagonal tiling.
 The resulting circuit improves on prior work by Chao et al. by using fewer pair measurements per four-body stabilizer measurement (5 instead of 6) and fewer time steps per round of stabilizer measurement (6 instead of 10).
 Using Monte Carlo sampling, I show that these improvements increase the threshold of the surface code when compiling into pair measurements from $\approx 0.2\%$ to $\approx 0.4\%$, and also that they improve the teraquop footprint at a $0.1\%$ physical gate error rate from $\approx6000$ qubits to $\approx3000$ qubits.
-However, I also show that Chao et al's construction will have a smaller teraquop footprint for physical gate error rates below $\approx 0.03\%$ (due to bidirectional hook errors in my construction).
+However, I also show that the teraquop footprint of Chao et al's construction improves more quickly than mine as physical error rate decreases, and is likely better below a physical gate error rate of $\approx 0.03\%$ (due to bidirectional hook errors in my construction).
 I also compare to the planar honeycomb code, showing that although this work does noticeably reduce the gap between the surface code and the honeycomb code (when compiling into pair measurements), the honeycomb code is still more efficient (threshold $\approx 0.8\%$, teraquop footprint at $0.1\%$ of $\approx 1000$).
 \end{abstract}
 
@@ -156,7 +156,7 @@ The paper is divided as follows.
 In \sec{construction}, I present the more compact construction that I found by using the ZX calculus.
 In \sec{results}, I present the simulation data obtained using a correlated minimum weight perfect matching decoder.
 In \sec{conclusion}, I discuss conclusions, including the ironic fact that although  my construction has a better threshold, its teraquop footprint eventually becomes larger than Chao et al.'s as physical error rate decreases.
-The paper also includes \app{uncertainty}, which specifies how I computed line fits, \app{noise_model}, which specifies the noise model I used, \app{example_circuit}, which includes an example circuit showing my construction, and \app{other_plots}, which includes additional data plots.
+The paper also includes \app{uncertainty}, which specifies how I computed line fits, \app{noise_model}, which specifies the noise model I used, and \app{other_plots}, which includes additional data plots.
 
 \begin{figure}
     \centering
@@ -184,6 +184,8 @@ The paper also includes \app{uncertainty}, which specifies how I computed line f
 This paper is not intended to be an introduction to the ZX calculus.
 I'll cover barely enough detail to convey that an efficient graph that implements a four-body X basis parity measurement is going to look like a Z type core surrounded by X type limbs leading to the data qubits.
 I recommend any of \cite{backens2016simplifiedzx,de2017zx,coecke2017picturing} as starting points for learning the ZX calculus.
+Note that I will be using a non-standard node coloring, where X nodes are white (instead of red) and Z nodes are black (instead of green).
+I use these colors because it makes the ZX graph of a CNOT gate look like the quantum circuit diagram of a CNOT gate.
 
 In the ZX calculus, an X basis parity measurement can be added to a graph by placing an X type node on each involved qubit and linking all of the nodes to a central Z type node (see graph (c) of \fig{zx_identities}).
 To create other implementations of this parity measurement, rewrite rules can be applied to the graph~\cite{backens2016simplifiedzx}.
@@ -195,7 +197,8 @@ First, init an ancilla in the X basis producing a $|+\rangle$.
 Then, for each involved data qubit, apply a CNOT controlled by the ancilla and targeting the data qubit.
 Finally, demolition measure the ancilla in the X basis.
 In the ZX calculus, a CNOT is represented by a Z type node on the control linked to an X type node on the target.
-X basis init and demolition measurement are both represented by Z type leaf nodes (note: it's intentional that the leaf node's type is not the same as the init/measure basis).
+X basis init and demolition measurement are both represented by Z type leaf nodes.
+(It's somewhat confusing that the Z type leaf prepares X type states, but this choice is a natural consequence of how the nodes are defined and avoids requiring special cases for leaves in the rewrite rules.)
 So, after converting into a ZX graph, the circuit construction would look like a Z type leaf (the init) leading into a series of Z type nodes linked to X type nodes on the data qubits (the CNOTs), leading into a Z type leaf (the measurement).
 This graph is graph (a) in \fig{zx_identities}.
 By repeatedly applying the spider fusion rule, you can contract all of the Z type nodes into a single node, producing graph (c) in \fig{zx_identities}, proving the circuit decomposition is correct.
@@ -268,10 +271,9 @@ and $X_1 X_2 X_3 X_4 \rightarrow 1$.
 The four body parity measurement construction that I've described uses five pair measurements.
 This is fewer than the six pair measurement construction reported by Chao et al.
 This is surprising, because Chao et al. ran a brute force search of the solution space.
-I see two plausible reasons that Chao et al. could have missed the five pair measurement solution, or decided not to report it.
-First, this solution involves the data qubits directly interacting with \emph{both} measurement qubits.
-Chao et al. may have been looking for solutions that only directly interacted the data qubits with one of the measurement qubits (because this has consequences for the topology required of the hardware).
-The second reason Chao et al. may not have reported this solution is because it has bidirectional hook errors.
+I contacted Chao et al. to ask why their search missed the five pair measurement solution.
+I had assumed it was because their search had skipped the circuit due to the bidirectional hook errors, or because it didn't follow their desired connectivity, but they explained to me that what they brute forced was how to implement a double-target CNOT gate using pair measurements.
+They decomposed the four-body measurement into two double-target CNOTs, and then decomposed each double-target CNOT into the three pair measurement decomposition they had found for it, resulting in a six pair measurement construction.
 
 A hook error is a single physical error that affects multiple data qubits due to the details of how abstract operations required by an error correcting code are decomposed into an explicit circuit.
 Look closely at \fig{xxxx_circuit}.
@@ -371,8 +373,11 @@ The line fits were computed using a Bayesian method, with a truncation step to r
 
 \fig{footprint_plot} highlights the intercepts of the line fits from \fig{extrapolation_plot} with a target logical error rate of one in a trillion.
 In other words, it estimates the number of physical qubits per logical qubit needed to reach algorithmically relevant logical error rates.
-In this plot you can clearly see the effect where my construction is initially better than Chao et al's construction, but will eventually become worse as the physical error rate decreases.
-You can also clearly see that, although my construction closes some of the gap between the surface code and the honeycomb code when compiling into pair measurements, the honeycomb code is still more efficient.
+In this plot you can see that my construction is initially better than Chao et al's construction, but is improving more slowly as the physical error rate decreases.
+This is what I expected, based on the fact that my construction has
+bidirectional hook errors in my construction.
+Although the data that I collected is not definitive on this point, because of
+the bidirectional hook errors I believe that for low enough physical error Chao et al's construction becomes strictly better.
 At a physical error rate of 0.1\%, the honeycomb code has a teraquop footprint of around 1000 qubits, compared to 3000 qubits for my construction and 6000 qubits for Chao et al's construction.
 
 
@@ -432,7 +437,7 @@ One of the striking things I noticed, after compiling the surface code into pair
 The circuit doesn't really know about the stabilizers that it came from, it only knows about the pair measurements running along the pentagonal faces.
 Detectors are formed from the edge measurements by combining them in surprising ways that narrowly avoid anti-commuting with intermediate measurements (see \fig{detector}).
 That's also what detectors look like in floquet codes.
-Particularly notable is that the compiled circuit is constantly moving the logical observable (for example, see the stim circuit shown in \app{example_circuit} and note the OBSERVABLE\_INCLUDE instruction inside the REPEAT block).
+Particularly notable is that the compiled circuit is constantly moving the logical observable (for example, see the stim circuits on zenodo~\cite{craig_gidney_2022_6626417} and note the OBSERVABLE\_INCLUDE instructions inside their REPEAT blocks).
 Having to constantly move the observable is normally thought of as \emph{the} defining aspect of a floquet code~\cite{hastings2021dynamically}, but here the same property is occurring in a compiled surface code circuit.
 
 Another fact about the circuit that surprised me was how well it performs, despite having half code distance.
@@ -630,170 +635,6 @@ This is because, in stabilizer circuits, classically controlled Paulis can alway
     }
     \label{tbl:noise_model}
 \end{table}
-
-\clearpage
-\section{Example Circuit}
-\label{app:example_circuit}
-
-This \href{https://github.com/quantumlib/Stim/blob/main/doc/file_format_stim_circuit.md}{stim circuit} is a noisy 10-round X-basis $d=3$ pentagonal-surface-code memory experiment.
-
-\begin{lstlisting}[style=stimcircuit]
-QUBIT_COORDS(-1, 6) 0
-QUBIT_COORDS(0, 0) 1
-QUBIT_COORDS(0, 4) 2
-QUBIT_COORDS(0, 8) 3
-QUBIT_COORDS(1, 2) 4
-QUBIT_COORDS(2, -1) 5
-QUBIT_COORDS(2, 5) 6
-QUBIT_COORDS(2, 7) 7
-QUBIT_COORDS(3, 2) 8
-QUBIT_COORDS(4, 0) 9
-QUBIT_COORDS(4, 4) 10
-QUBIT_COORDS(4, 8) 11
-QUBIT_COORDS(5, 6) 12
-QUBIT_COORDS(6, 1) 13
-QUBIT_COORDS(6, 3) 14
-QUBIT_COORDS(6, 9) 15
-QUBIT_COORDS(7, 6) 16
-QUBIT_COORDS(8, 0) 17
-QUBIT_COORDS(8, 4) 18
-QUBIT_COORDS(8, 8) 19
-QUBIT_COORDS(9, 2) 20
-RX 1 2 3 9 10 11 17 18 19
-R 0 4 8 12 16 20
-X_ERROR(0.001) 0 4 8 12 16 20
-Z_ERROR(0.001) 1 2 3 9 10 11 17 18 19
-DEPOLARIZE1(0.001) 5 6 7 13 14 15
-TICK
-MPP(0.001) X0*X2 X1*X4 X8*X9 X10*X12 X16*X18 X17*X20
-DEPOLARIZE2(0.001) 0 2 1 4 8 9 10 12 16 18 17 20
-DEPOLARIZE1(0.001) 3 5 6 7 11 13 14 15 19
-TICK
-MPP(0.001) Z4*Z8 Z12*Z16
-DEPOLARIZE2(0.001) 4 8 12 16
-DEPOLARIZE1(0.001) 0 1 2 3 5 6 7 9 10 11 13 14 15 17 18 19 20
-TICK
-RX 5 6 7 13 14 15
-MPP(0.001) X0*X3 X2*X4 X8*X10 X11*X12 X16*X19 X18*X20
-DEPOLARIZE2(0.001) 0 3 2 4 8 10 11 12 16 19 18 20
-Z_ERROR(0.001) 5 6 7 13 14 15
-DEPOLARIZE1(0.001) 1 9 17
-TICK
-M(0.001) 0 4 8 12 16 20
-MPP(0.001) Z1*Z5 Z2*Z6 Z3*Z7 Z9*Z13 Z10*Z14 Z11*Z15
-DEPOLARIZE1(0.001) 0 4 8 12 16 20
-DEPOLARIZE2(0.001) 1 5 2 6 3 7 9 13 10 14 11 15
-DEPOLARIZE1(0.001) 17 18 19
-TICK
-MPP(0.001) X6*X7 X13*X14
-DEPOLARIZE2(0.001) 6 7 13 14
-DEPOLARIZE1(0.001) 0 1 2 3 4 5 8 9 10 11 12 15 16 17 18 19 20
-TICK
-R 0 4 8 12 16 20
-MPP(0.001) Z5*Z9 Z6*Z10 Z7*Z11 Z13*Z17 Z14*Z18 Z15*Z19
-DEPOLARIZE2(0.001) 5 9 6 10 7 11 13 17 14 18 15 19
-X_ERROR(0.001) 0 4 8 12 16 20
-DEPOLARIZE1(0.001) 1 2 3
-TICK
-MX(0.001) 5 6 7 13 14 15
-MPP(0.001) X0*X2 X1*X4 X8*X9 X10*X12 X16*X18 X17*X20
-DETECTOR(-2, 6, 0) rec[-46] rec[-38]
-DETECTOR(2, 2, 0) rec[-45] rec[-44] rec[-37] rec[-36]
-DETECTOR(6, 6, 0) rec[-43] rec[-42] rec[-35] rec[-34]
-DETECTOR(10, 2, 0) rec[-41] rec[-33]
-OBSERVABLE_INCLUDE(0) rec[-12] rec[-9]
-SHIFT_COORDS(0, 0, 1)
-DEPOLARIZE1(0.001) 5 6 7 13 14 15
-DEPOLARIZE2(0.001) 0 2 1 4 8 9 10 12 16 18 17 20
-DEPOLARIZE1(0.001) 3 11 19
-TICK
-REPEAT 8 {
-    MPP(0.001) Z4*Z8 Z12*Z16
-    DEPOLARIZE2(0.001) 4 8 12 16
-    DEPOLARIZE1(0.001) 0 1 2 3 5 6 7 9 10 11 13 14 15 17 18 19 20
-    TICK
-    RX 5 6 7 13 14 15
-    MPP(0.001) X0*X3 X2*X4 X8*X10 X11*X12 X16*X19 X18*X20
-    DEPOLARIZE2(0.001) 0 3 2 4 8 10 11 12 16 19 18 20
-    Z_ERROR(0.001) 5 6 7 13 14 15
-    DEPOLARIZE1(0.001) 1 9 17
-    TICK
-    M(0.001) 0 4 8 12 16 20
-    MPP(0.001) Z1*Z5 Z2*Z6 Z3*Z7 Z9*Z13 Z10*Z14 Z11*Z15
-    DEPOLARIZE1(0.001) 0 4 8 12 16 20
-    DEPOLARIZE2(0.001) 1 5 2 6 3 7 9 13 10 14 11 15
-    DEPOLARIZE1(0.001) 17 18 19
-    TICK
-    MPP(0.001) X6*X7 X13*X14
-    DEPOLARIZE2(0.001) 6 7 13 14
-    DEPOLARIZE1(0.001) 0 1 2 3 4 5 8 9 10 11 12 15 16 17 18 19 20
-    TICK
-    R 0 4 8 12 16 20
-    MPP(0.001) Z5*Z9 Z6*Z10 Z7*Z11 Z13*Z17 Z14*Z18 Z15*Z19
-    DEPOLARIZE2(0.001) 5 9 6 10 7 11 13 17 14 18 15 19
-    X_ERROR(0.001) 0 4 8 12 16 20
-    DEPOLARIZE1(0.001) 1 2 3
-    TICK
-    MX(0.001) 5 6 7 13 14 15
-    MPP(0.001) X0*X2 X1*X4 X8*X9 X10*X12 X16*X18 X17*X20
-    DETECTOR(-2, 6, 0) rec[-86] rec[-78] rec[-60] rec[-46] rec[-38]
-    DETECTOR(2, -2, 0) rec[-66] rec[-58] rec[-40] rec[-26] rec[-18]
-    DETECTOR(2, 2, 0) rec[-85] rec[-84] rec[-77] rec[-76] rec[-59] rec[-52] rec[-51] rec[-45] rec[-44] rec[-37] rec[-36]
-    DETECTOR(2, 6, 0) rec[-65] rec[-64] rec[-57] rec[-56] rec[-40] rec[-32] rec[-31] rec[-30] rec[-29] rec[-25] rec[-24] rec[-17] rec[-16]
-    DETECTOR(6, 2, 0) rec[-63] rec[-62] rec[-55] rec[-54] rec[-39] rec[-30] rec[-27] rec[-23] rec[-22] rec[-15] rec[-14]
-    DETECTOR(6, 6, 0) rec[-83] rec[-82] rec[-75] rec[-74] rec[-60] rec[-51] rec[-50] rec[-48] rec[-47] rec[-43] rec[-42] rec[-35] rec[-34]
-    DETECTOR(6, 10, 0) rec[-61] rec[-53] rec[-39] rec[-29] rec[-28] rec[-21] rec[-13]
-    DETECTOR(10, 2, 0) rec[-81] rec[-73] rec[-59] rec[-49] rec[-48] rec[-41] rec[-33]
-    OBSERVABLE_INCLUDE(0) rec[-12] rec[-9]
-    SHIFT_COORDS(0, 0, 1)
-    DEPOLARIZE1(0.001) 5 6 7 13 14 15
-    DEPOLARIZE2(0.001) 0 2 1 4 8 9 10 12 16 18 17 20
-    DEPOLARIZE1(0.001) 3 11 19
-    TICK
-}
-MPP(0.001) Z4*Z8 Z12*Z16
-DEPOLARIZE2(0.001) 4 8 12 16
-DEPOLARIZE1(0.001) 0 1 2 3 5 6 7 9 10 11 13 14 15 17 18 19 20
-TICK
-RX 5 6 7 13 14 15
-MPP(0.001) X0*X3 X2*X4 X8*X10 X11*X12 X16*X19 X18*X20
-DEPOLARIZE2(0.001) 0 3 2 4 8 10 11 12 16 19 18 20
-Z_ERROR(0.001) 5 6 7 13 14 15
-DEPOLARIZE1(0.001) 1 9 17
-TICK
-M(0.001) 0 4 8 12 16 20
-MPP(0.001) Z1*Z5 Z2*Z6 Z3*Z7 Z9*Z13 Z10*Z14 Z11*Z15
-DEPOLARIZE1(0.001) 0 4 8 12 16 20
-DEPOLARIZE2(0.001) 1 5 2 6 3 7 9 13 10 14 11 15
-DEPOLARIZE1(0.001) 17 18 19
-TICK
-MPP(0.001) X6*X7 X13*X14
-DEPOLARIZE2(0.001) 6 7 13 14
-DEPOLARIZE1(0.001) 0 1 2 3 4 5 8 9 10 11 12 15 16 17 18 19 20
-TICK
-MPP(0.001) Z5*Z9 Z6*Z10 Z7*Z11 Z13*Z17 Z14*Z18 Z15*Z19
-DEPOLARIZE2(0.001) 5 9 6 10 7 11 13 17 14 18 15 19
-DEPOLARIZE1(0.001) 0 1 2 3 4 8 12 16 20
-TICK
-MX(0.001) 5 6 7 13 14 15
-OBSERVABLE_INCLUDE(0) rec[-6] rec[-3]
-MX(0.001) 1 2 3 9 10 11 17 18 19
-DETECTOR(-2, 6, 0) rec[-89] rec[-81] rec[-63] rec[-49] rec[-41]
-DETECTOR(2, -2, 0) rec[-69] rec[-61] rec[-43] rec[-29] rec[-21]
-DETECTOR(2, 2, 0) rec[-88] rec[-87] rec[-80] rec[-79] rec[-62] rec[-55] rec[-54] rec[-48] rec[-47] rec[-40] rec[-39]
-DETECTOR(2, 6, 0) rec[-68] rec[-67] rec[-60] rec[-59] rec[-43] rec[-35] rec[-34] rec[-33] rec[-32] rec[-28] rec[-27] rec[-20] rec[-19]
-DETECTOR(6, 2, 0) rec[-66] rec[-65] rec[-58] rec[-57] rec[-42] rec[-33] rec[-30] rec[-26] rec[-25] rec[-18] rec[-17]
-DETECTOR(6, 6, 0) rec[-86] rec[-85] rec[-78] rec[-77] rec[-63] rec[-54] rec[-53] rec[-51] rec[-50] rec[-46] rec[-45] rec[-38] rec[-37]
-DETECTOR(6, 10, 0) rec[-64] rec[-56] rec[-42] rec[-32] rec[-31] rec[-24] rec[-16]
-DETECTOR(10, 2, 0) rec[-84] rec[-76] rec[-62] rec[-52] rec[-51] rec[-44] rec[-36]
-SHIFT_COORDS(0, 0, 1)
-DETECTOR(-2, 6, 0) rec[-49] rec[-41] rec[-23] rec[-8] rec[-7]
-DETECTOR(2, 2, 0) rec[-48] rec[-47] rec[-40] rec[-39] rec[-22] rec[-15] rec[-14] rec[-9] rec[-8] rec[-6] rec[-5]
-DETECTOR(6, 6, 0) rec[-46] rec[-45] rec[-38] rec[-37] rec[-23] rec[-14] rec[-13] rec[-11] rec[-10] rec[-5] rec[-4] rec[-2] rec[-1]
-DETECTOR(10, 2, 0) rec[-44] rec[-36] rec[-22] rec[-12] rec[-11] rec[-3] rec[-2]
-OBSERVABLE_INCLUDE(0) rec[-9] rec[-6] rec[-3]
-DEPOLARIZE1(0.001) 5 6 7 13 14 15 1 2 3 9 10 11 17 18 19 0 4 8 12 16 20
-\end{lstlisting}
 
 \clearpage
 \section{Additional Data}
